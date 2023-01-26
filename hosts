@@ -1,0 +1,6 @@
+[masters]
+BR-MTT-DC-HBLOG-MT ansible_host=192.168.0.51
+
+[workers]
+BR-MTT-DC-HBLOG-WK1 ansible_host=192.168.0.52 ansible_user=root
+BR-MTT-DC-HBLOG-WK2 ansible_host=192.168.0.53 ansible_user=root
