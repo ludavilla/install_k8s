@@ -2,11 +2,11 @@
   become: yes
   tasks:
     - name: initialize the cluster
-      shell: sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-      args:  
-        chdir: $HOME
-        creates: cluster_initialized.txt
-      become_user: user
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+      #args:  
+      #  chdir: $HOME
+      #  creates: cluster_initialized.txt
+      #become_user: user
 
     - name: create .kube directory
       become: yes
