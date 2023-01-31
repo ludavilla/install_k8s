@@ -1,6 +1,6 @@
 ---
   - name: Instalação do CLuster HBSA
-    hosts: masters
+    hosts: "masters, workers"
 #    remote_user: hblog
     become: yes
     tasks: 
@@ -69,10 +69,15 @@
 
     - name: Instalando pacotes do KUbernet
       apt:
-        name: kubelet=1.20.0-00, kubeadm=1.20.0-00, kubectl=1.20.0-00, bash-completion
+        name: kubelet=1.26.0-00, kubeadm=1.26.0-00, kubectl=1.26.0-00, bash-completion
         state: present
         update_cache: yes
-        allow_change_held_packages: true
+        #  allow_change_held_packages: true
 
     - name: Desativando Upgrade dos Pacotes
       shell: apt-mark hold kubelet kubeadm kubectl
+
+
+    - name: Ativando os servicos
+      shell: systemctl enable crio
+      shell: systemctl start crio
