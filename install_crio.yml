@@ -1,0 +1,78 @@
+---
+  - name: Instalação do CLuster HBSA
+    hosts: master
+#    remote_user: hblog
+    become: yes
+    tasks: 
+    - name: Desativar repositorio do CD
+      shell: sed -i '/cdrom/{N;d;}' /etc/apt/sources.list
+      #shell: sed -i "s|deb cdrom|#deb cdrom|g" /etc/apt/sources.list
+
+    - name: Update apt-get repo and cache
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+   
+    - name: Ansible apt install pacotes
+      apt:
+        name: git, vim, curl, gnupg, ca-certificates
+        state: present
+    
+    - name: Carregamento dos módulos necessários que o CRI-O
+      shell: |
+        cat <<EOF | sudo tee /etc/modules-load.d/crio.conf
+        overlay
+        br_netfilter
+        EOF
+    
+    - name: Carregando os módulos overlay e br_netfilter
+      shell: |
+        modprobe overlay
+        modprobe br_netfilter
+
+    - name: Adicionar Sysctl na inicialização
+      shell: | 
+        cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+        net.bridge.bridge-nf-call-iptables = 1
+        net.ipv4.ip_forward = 1
+        net.bridge.bridge-nf-call-ip6tables = 1
+        EOF
+        sysctl --system
+
+    - name: Criando o repositorio crio
+      shell: | 
+        OS=Debian_10
+        VERSION=1.24  
+        echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+        echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+
+        curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | apt-key add -
+        curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+
+    #- name: Run the equivalent of "apt-get update" as a separate step
+    #  ansible.builtin.apt:
+    #    update_cache: yes
+   
+    - name: Ansible apt install pacotes
+      apt:
+        name: cri-o, cri-o-runc
+        update_cache: yes
+        state: present
+
+    - name: Instalação do Kubernetes. Adicionado os repositorio
+      shell: |
+        mkdir /etc/apt/keyrings
+        sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+ #   - name: Run the equivalent of "apt-get update" as a separate step
+ #     ansible.builtin.apt:
+ #       update_cache: yes
+
+    - name: Instalando pacotes do KUbernet
+      apt:
+        name: kubelet=1.26.0-00, kubeadm=1.26.0-00, kubectl=1.26.0-00, bash-completion
+        state: present
+        update_cache: yes
+        allow_change_held_packages: true
+
+    - name: Desativando Upgrade dos Pacotes
+      shell: apt-mark hold kubelet kubeadm kubectl
